@@ -274,7 +274,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 304.76, y: -202.71}
+  m_AnchoredPosition: {x: 304.76, y: -202.715}
   m_SizeDelta: {x: 609.52, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &7793712700159050103
@@ -849,7 +849,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 304.76, y: -320.78}
+  m_AnchoredPosition: {x: 304.76, y: -320.7825}
   m_SizeDelta: {x: 609.52, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &309949580708283009
@@ -1476,7 +1476,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 304.76, y: -104.065}
+  m_AnchoredPosition: {x: 304.76, y: -104.0725}
   m_SizeDelta: {x: 609.52, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &2321187246145431766
@@ -1899,7 +1899,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 304.76, y: -301.355}
+  m_AnchoredPosition: {x: 304.76, y: -301.35748}
   m_SizeDelta: {x: 609.52, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &5410089768253750010
@@ -2069,7 +2069,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 304.76, y: -241.56}
+  m_AnchoredPosition: {x: 304.76, y: -241.565}
   m_SizeDelta: {x: 609.52, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &7045673330561563379
@@ -2239,7 +2239,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 304.76, y: -162.34}
+  m_AnchoredPosition: {x: 304.76, y: -162.3475}
   m_SizeDelta: {x: 609.52, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &6042189565930949619
@@ -2679,8 +2679,8 @@ MonoBehaviour:
   m_text: "Test sk\u0142ada si\u0119 z 20 pyta\u0144 podstawowych oraz 12 pyta\u0144
     specjalistycznych. Maksymalna liczba punkt\xF3w wynosi 74, a egzamin uznaje si\u0119
     za zaliczony, gdy uzyskasz co najmniej 68 punkt\xF3w. Na przeczytanie ka\u017Cdego
-    pytania przeznaczone jest 15 sekund, natomiast na udzielenie odpowiedzi \u2013
-    10 sekund."
+    pytania masz 20 sekund, natomiast na udzielenie odpowiedzi 15 sekund. W przypadku
+    pyta\u0144 specjalistycznych masz 50 sekund na odpowied\u017A."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: f6aab600c365aa142a21644a6cc42ccc, type: 2}
   m_sharedMaterial: {fileID: -1912770166510016745, guid: f6aab600c365aa142a21644a6cc42ccc, type: 2}
@@ -2707,7 +2707,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 64
+  m_fontSize: 57.55
   m_fontSizeBase: 64
   m_fontWeight: 400
   m_enableAutoSizing: 1
