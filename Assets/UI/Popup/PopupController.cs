@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -23,6 +24,21 @@ public class PopupController : MonoBehaviour
 
         rejectButton.onClick.AddListener(Quit);
 
+    }
+
+    public void Setup(string message, Action onConfirmAction)
+    {
+
+        confirmButton.onClick.RemoveAllListeners();
+        rejectButton.onClick.RemoveAllListeners();
+
+        confirmButton.onClick.AddListener(() =>
+        {
+            onConfirmAction();
+            Destroy(this.gameObject);
+        });
+
+        rejectButton.onClick.AddListener(Quit);
     }
 
     private void Quit()
