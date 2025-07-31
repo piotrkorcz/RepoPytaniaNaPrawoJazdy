@@ -26,10 +26,15 @@ public class SummaryUIController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI correctAnswersCountTextView;
     [SerializeField] private TextMeshProUGUI collectedPointsCountTextView;
 
+    [SerializeField] private TextMeshProUGUI correctAnswersProcent;
+    [SerializeField] private TextMeshProUGUI correctPointsProcent;
+
     [Space]
 
     [SerializeField] private GameObject failedIcon;
     [SerializeField] private GameObject passedIcon;
+
+    private int leftoverPointsOverRequired = 6;
 
     public void Render(float time, int correctAnswers, int incorrectAnswers, int skippedAnswers, int points)
     {
@@ -77,6 +82,12 @@ public class SummaryUIController : MonoBehaviour
 
         correctAnswersCountTextView.text = correctAnswers.ToString();
         collectedPointsCountTextView.text = points.ToString();
+
+        float sum = (float)correctAnswers / (correctAnswers + incorrectAnswers + skippedAnswers);
+        correctAnswersProcent.text = " (" + sum.ToString("P0") + ")";
+
+        sum = (float)points / (DataLoader.POINTS_REQUIRED_COUNT + leftoverPointsOverRequired);
+        correctPointsProcent.text = " (" + sum.ToString("P0") + ")";
     }
 
 }
