@@ -16,7 +16,7 @@ public class PopupController : MonoBehaviour
     [SerializeField]
     public Button rejectButton;
 
-    public void Setup(string message = null, Action onConfirmAction = null)
+    public void Setup(string message = null, Action onConfirmAction = null, Action onRefuseAction = null)
     {
         if(message!=null)
             messageHolder.text = message;
@@ -28,10 +28,15 @@ public class PopupController : MonoBehaviour
         {
             if(onConfirmAction != null)
                 onConfirmAction();
-            Destroy(this.gameObject);
+            Quit();
         });
 
-        rejectButton.onClick.AddListener(Quit);
+        rejectButton.onClick.AddListener(() =>
+        {
+            if (onRefuseAction != null)
+                onRefuseAction();
+            Quit();
+        });
     }
 
     private void Quit()

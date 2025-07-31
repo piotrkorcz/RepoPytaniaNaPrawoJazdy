@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;
 
 public class DataLoader : MonoBehaviour
 {
@@ -41,6 +42,9 @@ public class DataLoader : MonoBehaviour
     [SerializeField] private QuestionUIController questionUIController;
     [SerializeField] private GameObject loading;
 
+    [SerializeField] private Button accessExam;
+    [SerializeField] private Button accessDatabase;
+
     private int currentDataSet;
     private bool isLoading;
     public bool IsLoading { get { return isLoading; } }
@@ -55,16 +59,22 @@ public class DataLoader : MonoBehaviour
     {
         StartCoroutine(LoadExamData());
     }
-
+    
+    public void LoadNewDataSetInTheBackground()
+    {
+        EnableAccessess(false);
+        StartCoroutine(LoadData(false));
+    }
     public void LoadNewDataSet()
     {
         StartCoroutine(LoadData());
     }
 
-    private IEnumerator LoadData()
+    private IEnumerator LoadData(bool shouldActivateLoadingCurtine = true)
     {
         isLoading = true;
-        loading.SetActive(true);
+        if(shouldActivateLoadingCurtine)
+            loading.SetActive(true);
 
         string url = API_URL + GET_ALL_SIMPLE + TOKEN + START + currentDataSet * QUESTIONS_PER_DATA_SET + LIMIT + QUESTIONS_PER_DATA_SET;
 
@@ -73,6 +83,7 @@ public class DataLoader : MonoBehaviour
         UnityWebRequest request = UnityWebRequest.Get(url);
         
         request.SetRequestHeader("Content-Type", "application/json");
+
 
         yield return request.SendWebRequest();
 
@@ -94,7 +105,9 @@ public class DataLoader : MonoBehaviour
 
         isLoading = false;
         loading.SetActive(false);
+        EnableAccessess(true);
         OnLoad?.Invoke();
+
     }
 
     private IEnumerator LoadExamData()
@@ -119,6 +132,7 @@ public class DataLoader : MonoBehaviour
         }
         else
         {
+           
             JSONNode node = JSON.Parse(simpleRequest.downloadHandler.text);
 
             foreach (JSONNode simpleQuestion in node["data"])
@@ -140,10 +154,12 @@ public class DataLoader : MonoBehaviour
         }
         else
         {
+            
             JSONNode node = JSON.Parse(specializedRequest.downloadHandler.text);
 
             foreach (JSONNode specializedQuestion in node["data"])
                 examQuestions.Add(GetQuestionData(specializedQuestion, true));
+            
         }
 
         foreach (QuestionData questionData in examQuestions)
@@ -156,6 +172,11 @@ public class DataLoader : MonoBehaviour
         questionUIController.Initialize(examQuestions);
     }
 
+    private void EnableAccessess(bool should = true)
+    {
+        accessDatabase.interactable = should;
+        accessExam.interactable = should;
+    }
     private QuestionData GetQuestionData(JSONNode node, bool isSpecialized)
     {
         if (isSpecialized)
