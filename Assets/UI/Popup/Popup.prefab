@@ -117,7 +117,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bae59edcc326fce4babc180f49a4dffa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  text: 
+  messageHolder: {fileID: 8719230458159529013}
   confirmButton: {fileID: 4551834186035840058}
   rejectButton: {fileID: 2775025046729326480}
 --- !u!1 &4853072453561920215
@@ -559,7 +559,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1095838482727315012, guid: a5a0ced71e2cd814291471e40b72fe98, type: 3}
       propertyPath: m_Name
-      value: Button (1)
+      value: Confirm
       objectReference: {fileID: 0}
     - target: {fileID: 3049034501130044698, guid: a5a0ced71e2cd814291471e40b72fe98, type: 3}
       propertyPath: m_Pivot.x
@@ -749,7 +749,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1095838482727315012, guid: a5a0ced71e2cd814291471e40b72fe98, type: 3}
       propertyPath: m_Name
-      value: Button (1)
+      value: Reject
       objectReference: {fileID: 0}
     - target: {fileID: 3049034501130044698, guid: a5a0ced71e2cd814291471e40b72fe98, type: 3}
       propertyPath: m_Pivot.x

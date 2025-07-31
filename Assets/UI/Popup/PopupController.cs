@@ -8,8 +8,7 @@ using UnityEngine.UI;
 public class PopupController : MonoBehaviour
 {
     [SerializeField]
-    [HideInInspector]
-    public string text;
+    public TextMeshProUGUI messageHolder;
 
     [SerializeField]
     public Button confirmButton;
@@ -17,24 +16,18 @@ public class PopupController : MonoBehaviour
     [SerializeField]
     public Button rejectButton;
 
-    private void Start()
+    public void Setup(string message = null, Action onConfirmAction = null)
     {
-        confirmButton.onClick.RemoveAllListeners();
-        rejectButton.onClick.RemoveAllListeners();
-
-        rejectButton.onClick.AddListener(Quit);
-
-    }
-
-    public void Setup(string message, Action onConfirmAction)
-    {
+        if(message!=null)
+            messageHolder.text = message;
 
         confirmButton.onClick.RemoveAllListeners();
         rejectButton.onClick.RemoveAllListeners();
 
         confirmButton.onClick.AddListener(() =>
         {
-            onConfirmAction();
+            if(onConfirmAction != null)
+                onConfirmAction();
             Destroy(this.gameObject);
         });
 
