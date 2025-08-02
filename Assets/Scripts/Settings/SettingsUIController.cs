@@ -28,4 +28,9 @@ public class SettingsUIController : MonoBehaviour
         SettingsManager.OnColorModeToggle();
     }
 
+    public void HandleDownloadButton()
+    {
+        DataLoader.Instance.LoadNewDataSetInTheBackground();
+    }
+
 }

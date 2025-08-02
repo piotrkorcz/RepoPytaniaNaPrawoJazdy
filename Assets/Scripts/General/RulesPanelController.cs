@@ -17,7 +17,17 @@ public class RulesPanelController : MonoBehaviour
         if (PlayerPrefs.GetInt("dontShowRulesPage") == 1)
         {
             this.gameObject.SetActive(false);
+
+            HandleStartExamLogic();
+
         }
+
+
+
+    }
+
+    public void HandleStartExamLogic()
+    {
         if (ConsistentManager.Instance.ShouldSpawnFetchPopup())
         {
             ConsistentManager.Instance.SpawnPopup(onConfirmAction: HandleAcceptPopup, onRefuseAction: DataLoader.Instance.LoadExam);
@@ -26,10 +36,7 @@ public class RulesPanelController : MonoBehaviour
         {
             DataLoader.Instance.LoadExam();
         }
-
-
     }
-
 
     private void HandleAcceptPopup()
     {

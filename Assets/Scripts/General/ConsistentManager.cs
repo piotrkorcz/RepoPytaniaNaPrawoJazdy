@@ -15,9 +15,6 @@ public class ConsistentManager : MonoBehaviour
     [SerializeField]
     private Canvas mainCanvas;
 
-    [SerializeField]
-    public GameObject loadingInformation;
-
     private void Awake()
     {
 
@@ -45,7 +42,6 @@ public class ConsistentManager : MonoBehaviour
     private void OnDatasetDownloaded()
     {
         Debug.Log("DATA FINISHED DOWNLOADING");
-        loadingInformation.SetActive(false);
 
     }
     public bool ShouldSpawnFetchPopup()
@@ -71,7 +67,6 @@ public class ConsistentManager : MonoBehaviour
     {
         void extendedConfirmAction()
         {
-            loadingInformation.SetActive(true);
             onConfirmAction?.Invoke();
         }
 
