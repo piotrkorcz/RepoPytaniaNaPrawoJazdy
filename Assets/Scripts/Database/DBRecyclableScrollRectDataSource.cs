@@ -61,8 +61,8 @@ public class DBRecyclableScrollRectDataSource : MonoBehaviour, IRecyclableScroll
         DBCell item = cell as DBCell;
         if (index == filteredData.Count - 1 && !(DatabaseSorting.sortingType == SortingType.Correct || DatabaseSorting.sortingType == SortingType.Incorrect) && !areExamQuestions)
         {
-            DataLoader.Instance.LoadNewDataSet();
-            StartCoroutine(OnNewDataSetLoaded());
+            //DataLoader.Instance.LoadNewDataSet();
+            //StartCoroutine(OnNewDataSetLoaded());
         }
         item.ConfigureCell(filteredData[index], index);
     }

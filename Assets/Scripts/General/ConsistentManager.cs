@@ -2,6 +2,7 @@ using EditorAttributes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 public class ConsistentManager : MonoBehaviour
@@ -32,7 +33,7 @@ public class ConsistentManager : MonoBehaviour
     }
     private void Start()
     {
-        SpawnPopup(onConfirmAction: DataLoader.Instance.LoadNewDataSetInTheBackground);
+        SpawnDatabasePopup();
 
         DataLoader.Instance.OnLoad += OnDatasetDownloaded;
     }
@@ -46,6 +47,23 @@ public class ConsistentManager : MonoBehaviour
         Debug.Log("DATA FINISHED DOWNLOADING");
         loadingInformation.SetActive(false);
 
+    }
+    public bool ShouldSpawnFetchPopup()
+    {
+        string finalPath1 = Path.Combine(Application.persistentDataPath, DataLoader.LOCAL_SIMPLE_DATABASE_FILENAME);
+        string finalPath2 = Path.Combine(Application.persistentDataPath, DataLoader.LOCAL_SPECIALIZED_DATABASE_FILENAME);
+
+        if (File.Exists(finalPath1) && File.Exists(finalPath2))
+            return false;
+        return true;
+    }
+
+    public void SpawnDatabasePopup()
+    {
+        if (ShouldSpawnFetchPopup())
+        {
+            SpawnPopup(onConfirmAction: DataLoader.Instance.LoadNewDataSetInTheBackground);
+        }
     }
 
     [Button]

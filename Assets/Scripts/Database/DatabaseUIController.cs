@@ -22,6 +22,16 @@ public class DatabaseUIController : MonoBehaviour
         playPanel.SetActive(true);
         this.gameObject.SetActive(false);
     }
+
+    public void HandlePopupOpen()
+    {
+        if (DataLoader.Instance.databaseQuestions.Count == 0 && ConsistentManager.Instance.ShouldSpawnFetchPopup())
+        {
+            ConsistentManager.Instance.SpawnPopup(onConfirmAction: GoBackAndWaitForLoad, onRefuseAction: Open);
+        }
+        else
+            Open();
+    }
     public void Open()
     {
         if (DataLoader.Instance.databaseQuestions.Count == 0)

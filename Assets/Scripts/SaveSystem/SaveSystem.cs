@@ -1,3 +1,5 @@
+using SimpleJSON;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -55,6 +57,96 @@ public class SaveSystem : MonoBehaviour
         answeredQuestionList.answeredQuestions.ForEach(aQ => DataLoader.Instance.answeredQuestions.Add(aQ.GetQuestionData()));
 
         SaveAnswers();
+    }
+
+    public static void SaveJsonToFile(string jsonContent, string fileName)
+    {
+        string filePath = Path.Combine(Application.persistentDataPath, fileName);
+        string json = JsonUtility.ToJson(jsonContent, true);
+        File.WriteAllText(filePath, json);
+        try
+        {
+            File.WriteAllText(filePath, jsonContent);
+            Debug.Log($"JSON saved to: {filePath}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to save JSON to {filePath}: {e.Message}");
+        }
+    }
+
+    public static JSONNode LoadJsonFromFile(string fileName)
+    {
+        string filePath = Path.Combine(Application.persistentDataPath, fileName);
+        if (!File.Exists(filePath))
+        {
+            Debug.LogWarning($"File '{fileName}' not found at {filePath}.");
+            return null;
+        }
+
+        try
+        {
+            string jsonContent = File.ReadAllText(filePath);
+            JSONNode node = JSON.Parse(jsonContent);
+            Debug.Log($"Successfully loaded JSON from: {filePath}");
+            return node;
+        }
+        catch (FileNotFoundException)
+        {
+            // This case should ideally be caught by File.Exists, but good for robustness.
+            Debug.LogError($"File not found during read: {filePath}");
+            return null;
+        }
+        catch (IOException e)
+        {
+            Debug.LogError($"Error reading file {filePath}: {e.Message}");
+            return null;
+        }
+        catch (Exception e) // Catch parsing errors from SimpleJSON
+        {
+            Debug.LogError($"Error parsing JSON from {filePath}: {e.Message}");
+            return null;
+        }
+    }
+
+    public static List<JSONNode> GetRandomRecordsFromJsonNode(JSONNode sourceNode, string arrayKey, int count)
+    {
+        List<JSONNode> randomRecords = new List<JSONNode>();
+
+        if (sourceNode == null || sourceNode[arrayKey] == null || !sourceNode[arrayKey].IsArray || sourceNode[arrayKey].Count == 0)
+        {
+            Debug.LogWarning($"Source JSONNode does not contain a valid array under key '{arrayKey}' or is empty.");
+            return randomRecords;
+        }
+
+        JSONNode recordsArray = sourceNode[arrayKey];
+        List<JSONNode> allRecords = new List<JSONNode>();
+
+        // Copy all JSONNode elements into a mutable C# List
+        foreach (JSONNode record in recordsArray)
+        {
+            allRecords.Add(record);
+        }
+
+        // Shuffle the list using Fisher-Yates algorithm
+        System.Random rng = new System.Random();
+        int n = allRecords.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = rng.Next(n + 1);
+            JSONNode value = allRecords[k];
+            allRecords[k] = allRecords[n];
+            allRecords[n] = value;
+        }
+
+        // Select the first 'count' elements
+        for (int i = 0; i < Math.Min(count, allRecords.Count); i++)
+        {
+            randomRecords.Add(allRecords[i]);
+        }
+
+        return randomRecords;
     }
 
 }

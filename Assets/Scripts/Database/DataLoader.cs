@@ -2,6 +2,8 @@ using SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -22,11 +24,12 @@ public class DataLoader : MonoBehaviour
     public const string PICTURE_FILE_FORMAT = ".jpg";
     public const string VIDEO_FILE_FORMAT = ".mp4";
 
-    private const int QUESTIONS_PER_DATA_SET = 32;
+    private const int QUESTIONS_PER_DATA_SET = 9999999;
 
     private const string API_URL = "https://admin.aplikacjaszkolajazdy.pl/api/";
 
     private const string GET_ALL_SIMPLE = "getAllSimple.php";
+    private const string GET_ALL_SPECIALIZED = "getAllSpecialized.php";
     private const string GET_ALL_SIMPLE_RANDOM_QUESTION = "getAllSimpleRandom.php";
     private const string GET_ALL_SPECIALIZED_RANDOM_QUESTION = "getAllSpecializedRandom.php";
 
@@ -34,6 +37,9 @@ public class DataLoader : MonoBehaviour
     private const string START = "&start=";
     private const string LIMIT = "&limit=";
     private const string CATEGORY = "&category=B";
+
+    public const string LOCAL_SIMPLE_DATABASE_FILENAME = "savedSimpleQuestions.json";
+    public const string LOCAL_SPECIALIZED_DATABASE_FILENAME = "savedSpecializedQuestions.json";
 
     public List<QuestionData> examQuestions;
     public List<QuestionData> databaseQuestions = new();
@@ -56,49 +62,137 @@ public class DataLoader : MonoBehaviour
     }
 
     public void LoadExam()
-    {
+    { 
         StartCoroutine(LoadExamData());
     }
     
     public void LoadNewDataSetInTheBackground()
     {
-        EnableAccessess(false);
-        StartCoroutine(LoadData(false));
+
+        StartCoroutine(FetchAllDatabaseData());
     }
     public void LoadNewDataSet()
     {
         StartCoroutine(LoadData());
     }
 
+    private IEnumerator FetchAllDatabaseData()
+    {
+            EnableAccessess(false);
+            Debug.Log("Loading from internet data");
+            isLoading = true;
+
+            string url = API_URL + GET_ALL_SIMPLE + TOKEN + START + currentDataSet * QUESTIONS_PER_DATA_SET + LIMIT + QUESTIONS_PER_DATA_SET;
+
+            currentDataSet++;
+
+            UnityWebRequest request = UnityWebRequest.Get(url);
+
+            request.SetRequestHeader("Content-Type", "application/json");
+
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.ConnectionError ||
+                request.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError("Loading error: " + request.error);
+            }
+            else
+            {
+                JSONNode node = JSON.Parse(request.downloadHandler.text);
+
+                foreach (JSONNode simpleQuestion in node["data"])
+                    databaseQuestions.Add(GetQuestionData(simpleQuestion, false));
+
+                foreach (QuestionData questionData in databaseQuestions)
+                    yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
+
+                SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SIMPLE_DATABASE_FILENAME);
+            }
+
+
+            string specializedURL = API_URL + GET_ALL_SPECIALIZED + TOKEN + LIMIT + QUESTIONS_PER_DATA_SET + CATEGORY;
+
+            UnityWebRequest specializedRequest = UnityWebRequest.Get(specializedURL);
+
+            specializedRequest.SetRequestHeader("Content-Type", "application/json");
+
+            yield return specializedRequest.SendWebRequest();
+
+            if (specializedRequest.result == UnityWebRequest.Result.ConnectionError ||
+                specializedRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError("Loading error: " + specializedRequest.error);
+            }
+            else
+            {
+
+                JSONNode node = JSON.Parse(specializedRequest.downloadHandler.text);
+                foreach (JSONNode specializedQuestion in node["data"])
+                {
+                    yield return StartCoroutine(LoadPictureOrVideoThumbnail(GetQuestionData(specializedQuestion, true)));
+                }
+                SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SPECIALIZED_DATABASE_FILENAME);
+            }
+
+
+
+
+        isLoading = false;
+        loading.SetActive(false);
+        EnableAccessess(true);
+        OnLoad?.Invoke();
+    }
     private IEnumerator LoadData(bool shouldActivateLoadingCurtine = true)
     {
-        isLoading = true;
-        if(shouldActivateLoadingCurtine)
-            loading.SetActive(true);
+        string finalPath = Path.Combine(Application.persistentDataPath, LOCAL_SIMPLE_DATABASE_FILENAME);
+        Debug.Log(finalPath);
 
-        string url = API_URL + GET_ALL_SIMPLE + TOKEN + START + currentDataSet * QUESTIONS_PER_DATA_SET + LIMIT + QUESTIONS_PER_DATA_SET;
-
-        currentDataSet++;
-
-        UnityWebRequest request = UnityWebRequest.Get(url);
-        
-        request.SetRequestHeader("Content-Type", "application/json");
-
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.ConnectionError ||
-            request.result == UnityWebRequest.Result.ProtocolError)
+        if (!File.Exists(finalPath))
         {
-            Debug.LogError("Loading error: " + request.error);
+            Debug.Log("Loading from internet data");
+            isLoading = true;
+            if (shouldActivateLoadingCurtine)
+                loading.SetActive(true);
+
+            string url = API_URL + GET_ALL_SIMPLE + TOKEN + START + currentDataSet * QUESTIONS_PER_DATA_SET + LIMIT + QUESTIONS_PER_DATA_SET;
+
+            currentDataSet++;
+
+            UnityWebRequest request = UnityWebRequest.Get(url);
+
+            request.SetRequestHeader("Content-Type", "application/json");
+
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.ConnectionError ||
+                request.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError("Loading error: " + request.error);
+            }
+            else
+            {
+                JSONNode node = JSON.Parse(request.downloadHandler.text);
+
+                foreach (JSONNode simpleQuestion in node["data"])
+                    databaseQuestions.Add(GetQuestionData(simpleQuestion, false));
+
+                foreach (QuestionData questionData in databaseQuestions)
+                    yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
+
+                SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SIMPLE_DATABASE_FILENAME);
+            }
+
+
         }
         else
         {
-            JSONNode node = JSON.Parse(request.downloadHandler.text);
-
-            foreach (JSONNode simpleQuestion in node["data"])
+            Debug.Log("Loading from local data");
+            JSONNode localData = SaveSystem.LoadJsonFromFile(LOCAL_SIMPLE_DATABASE_FILENAME);
+            foreach (JSONNode simpleQuestion in localData["data"])
                 databaseQuestions.Add(GetQuestionData(simpleQuestion, false));
-
             foreach (QuestionData questionData in databaseQuestions)
                 yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
         }
@@ -112,64 +206,97 @@ public class DataLoader : MonoBehaviour
 
     private IEnumerator LoadExamData()
     {
-        isLoading = true;
-        loading.SetActive(true);
 
-        string simpleURL = API_URL + GET_ALL_SIMPLE_RANDOM_QUESTION + TOKEN + LIMIT + TOTAL_SIMPLE_QUESTION_COUNT + CATEGORY;
-
-        UnityWebRequest simpleRequest = UnityWebRequest.Get(simpleURL);
-
-        simpleRequest.SetRequestHeader("Content-Type", "application/json");
-
-        yield return simpleRequest.SendWebRequest();
-
-        examQuestions = new();
-
-        if (simpleRequest.result == UnityWebRequest.Result.ConnectionError ||
-            simpleRequest.result == UnityWebRequest.Result.ProtocolError)
+        string simpleFinalPath = Path.Combine(Application.persistentDataPath, LOCAL_SIMPLE_DATABASE_FILENAME);
+        string specializedFinalPath = Path.Combine(Application.persistentDataPath, LOCAL_SPECIALIZED_DATABASE_FILENAME);
+        if (!File.Exists(simpleFinalPath) || !File.Exists(specializedFinalPath))
         {
-            Debug.LogError("Loading error: " + simpleRequest.error);
+            isLoading = true;
+            loading.SetActive(true);
+
+            string simpleURL = API_URL + GET_ALL_SIMPLE_RANDOM_QUESTION + TOKEN + LIMIT + TOTAL_SIMPLE_QUESTION_COUNT + CATEGORY;
+
+            UnityWebRequest simpleRequest = UnityWebRequest.Get(simpleURL);
+
+            simpleRequest.SetRequestHeader("Content-Type", "application/json");
+
+            yield return simpleRequest.SendWebRequest();
+
+            examQuestions = new();
+
+            if (simpleRequest.result == UnityWebRequest.Result.ConnectionError ||
+                simpleRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError("Loading error: " + simpleRequest.error);
+            }
+            else
+            {
+
+                JSONNode node = JSON.Parse(simpleRequest.downloadHandler.text);
+
+                foreach (JSONNode simpleQuestion in node["data"])
+                    examQuestions.Add(GetQuestionData(simpleQuestion, false));
+            }
+
+            string specializedURL = API_URL + GET_ALL_SPECIALIZED_RANDOM_QUESTION + TOKEN + LIMIT + TOTAL_SPECIALIZED_QUESTION_COUNT + CATEGORY;
+
+            UnityWebRequest specializedRequest = UnityWebRequest.Get(specializedURL);
+
+            specializedRequest.SetRequestHeader("Content-Type", "application/json");
+
+            yield return specializedRequest.SendWebRequest();
+
+            if (specializedRequest.result == UnityWebRequest.Result.ConnectionError ||
+                specializedRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError("Loading error: " + specializedRequest.error);
+            }
+            else
+            {
+
+                JSONNode node = JSON.Parse(specializedRequest.downloadHandler.text);
+
+                foreach (JSONNode specializedQuestion in node["data"])
+                    examQuestions.Add(GetQuestionData(specializedQuestion, true));
+
+            }
+
+            foreach (QuestionData questionData in examQuestions)
+                yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
+
+
         }
+
         else
         {
-           
-            JSONNode node = JSON.Parse(simpleRequest.downloadHandler.text);
+            examQuestions = new();
 
-            foreach (JSONNode simpleQuestion in node["data"])
+            JSONNode localData = SaveSystem.LoadJsonFromFile(simpleFinalPath);
+
+            List<JSONNode> deJsonedQuestionList = SaveSystem.GetRandomRecordsFromJsonNode(localData, "data", 20);
+            foreach(JSONNode simpleQuestion in deJsonedQuestionList)
+            {
                 examQuestions.Add(GetQuestionData(simpleQuestion, false));
-        }
+            }
 
-        string specializedURL = API_URL + GET_ALL_SPECIALIZED_RANDOM_QUESTION + TOKEN + LIMIT + TOTAL_SPECIALIZED_QUESTION_COUNT + CATEGORY;
+            localData = SaveSystem.LoadJsonFromFile(specializedFinalPath);
 
-        UnityWebRequest specializedRequest = UnityWebRequest.Get(specializedURL);
+            deJsonedQuestionList = SaveSystem.GetRandomRecordsFromJsonNode(localData, "data", 12);
 
-        specializedRequest.SetRequestHeader("Content-Type", "application/json");
-
-        yield return specializedRequest.SendWebRequest();
-
-        if (specializedRequest.result == UnityWebRequest.Result.ConnectionError ||
-            specializedRequest.result == UnityWebRequest.Result.ProtocolError)
-        {
-            Debug.LogError("Loading error: " + specializedRequest.error);
-        }
-        else
-        {
-            
-            JSONNode node = JSON.Parse(specializedRequest.downloadHandler.text);
-
-            foreach (JSONNode specializedQuestion in node["data"])
+            foreach (JSONNode specializedQuestion in deJsonedQuestionList)
+            {
                 examQuestions.Add(GetQuestionData(specializedQuestion, true));
-            
-        }
+            }
 
-        foreach (QuestionData questionData in examQuestions)
-            yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
+            Debug.Log(examQuestions.Count);
+        }
 
         isLoading = false;
         loading.SetActive(false);
         OnLoad?.Invoke();
 
         questionUIController.Initialize(examQuestions);
+
     }
 
     private void EnableAccessess(bool should = true)
@@ -274,6 +401,8 @@ public class DataLoader : MonoBehaviour
         if (changeLoadingVisibility)
             loading.SetActive(false);
     }
+
+
 
 }
 
