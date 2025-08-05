@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -5,11 +6,17 @@ public class SettingsUIController : MonoBehaviour
 {
     [SerializeField] private GameObject soundToggle;
     [SerializeField] private Slider soundSlider;
+    [SerializeField] private Button downloadButton;
+    [SerializeField] private GameObject disclaimerText;
 
     private void Start()
     {
         soundToggle.SetActive(SettingsManager.SoundToggle);
         soundSlider.value = SettingsManager.SoundSlider;
+
+        bool should = ConsistentManager.Instance.ShouldSpawnFetchPopup();
+        downloadButton.interactable = should;
+        disclaimerText.SetActive(!should);
     }
 
     public void OnSoundToggle()
@@ -31,6 +38,8 @@ public class SettingsUIController : MonoBehaviour
     public void HandleDownloadButton()
     {
         DataLoader.Instance.LoadNewDataSetInTheBackground();
+        disclaimerText.SetActive(true);
+        downloadButton.interactable = false;
     }
 
 }

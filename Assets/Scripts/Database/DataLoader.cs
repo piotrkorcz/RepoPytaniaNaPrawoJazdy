@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -53,7 +52,7 @@ public class DataLoader : MonoBehaviour
 
     [SerializeField] private Button accessExam;
     [SerializeField] private Button accessDatabase;
-    [SerializeField] private Button settingsButton;
+    //[SerializeField] private Button settingsButton;
 
     private int currentDataSet;
     private bool isLoading;
@@ -307,7 +306,7 @@ public class DataLoader : MonoBehaviour
     {
         accessDatabase.interactable = should;
         accessExam.interactable = should;
-        settingsButton.interactable = should;
+        //settingsButton.interactable = should;
         loadingInformation.gameObject.SetActive(!should);
     }
     private QuestionData GetQuestionData(JSONNode node, bool isSpecialized)
