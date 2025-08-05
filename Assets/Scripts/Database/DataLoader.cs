@@ -3,6 +3,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -132,13 +134,19 @@ public class DataLoader : MonoBehaviour
             {
 
                 JSONNode node = JSON.Parse(specializedRequest.downloadHandler.text);
+
+                foreach (JSONNode specializedQuestion in node["data"])
+                    databaseQuestions.Add(GetQuestionData(specializedQuestion, true));
+
                 foreach (JSONNode specializedQuestion in node["data"])
                 {
                     yield return StartCoroutine(LoadPictureOrVideoThumbnail(GetQuestionData(specializedQuestion, true)));
                 }
+
                 SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SPECIALIZED_DATABASE_FILENAME);
             }
 
+            yield return StartCoroutine(UnityAsyncExtentions.WaitForTask(StartMediaDownload(databaseQuestions)));
 
 
 
@@ -183,8 +191,10 @@ public class DataLoader : MonoBehaviour
                     databaseQuestions.Add(GetQuestionData(simpleQuestion, false));
 
                 foreach (QuestionData questionData in databaseQuestions)
+                {
                     yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
-
+                }
+ 
                 SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SIMPLE_DATABASE_FILENAME);
             }
 
@@ -407,6 +417,78 @@ public class DataLoader : MonoBehaviour
             loading.SetActive(false);
     }
 
+    public async Task StartMediaDownload(List<QuestionData> questionsToDownload)
+    {
+        Debug.Log($"Starting media download for {questionsToDownload.Count} questions...");
+
+        await DownloadAndSaveAllMedia(questionsToDownload);
+
+        Debug.Log("Media download process finished.");
+    }
+
+    private async Task DownloadAndSaveAllMedia(List<QuestionData> questions)
+    {
+        string mediaSavePath = Path.Combine(Application.persistentDataPath, "MediaCache");
+        Debug.Log(mediaSavePath);
+        if (!Directory.Exists(mediaSavePath))
+        {
+            Directory.CreateDirectory(mediaSavePath);
+        }
+
+        var allUrls = new HashSet<string>();
+        foreach (var question in questions)
+        {
+            if (!string.IsNullOrEmpty(question.mediaLink))
+            {
+                allUrls.Add(question.mediaLink);
+            }
+            if (question.IsFileVideo() && !string.IsNullOrEmpty(question.frameImage))
+            {
+                allUrls.Add(question.frameImage);
+            }
+        }
+
+        List<Task> downloadTasks = allUrls.Select(url => DownloadAndSaveFileAsync(url, mediaSavePath)).ToList();
+
+        await Task.WhenAll(downloadTasks);
+    }
+
+    private async Task DownloadAndSaveFileAsync(string url, string saveDirectory)
+    {
+        try
+        {
+            string fileName = Path.GetFileName(new Uri(url).LocalPath);
+            string savePath = Path.Combine(saveDirectory, fileName);
+
+            if (File.Exists(savePath))
+            {
+                Debug.Log($"File already exists, skipping: {fileName}");
+                return;
+            }
+
+            using (var request = UnityWebRequest.Get(url))
+            {
+                 await request.SendWebRequest();
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    byte[] fileData = request.downloadHandler.data;
+
+                    await File.WriteAllBytesAsync(savePath, fileData);
+
+                    Debug.Log($"Successfully downloaded and saved: {fileName} to {savePath}");
+                }
+                else
+                {
+                    Debug.LogError($"Failed to download {url}: {request.error}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"An exception occurred while downloading {url}: {ex.Message}");
+        }
+    }
 
 
 }
