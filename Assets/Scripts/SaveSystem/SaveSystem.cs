@@ -149,6 +149,37 @@ public class SaveSystem : MonoBehaviour
         return randomRecords;
     }
 
+    public static Sprite LoadSpriteFromFile(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            Debug.LogError($"File not found at: {filePath}");
+            return null;
+        }
+
+        try
+        {
+            byte[] fileData = File.ReadAllBytes(filePath);
+            Texture2D texture = new Texture2D(2, 2);
+            if (texture.LoadImage(fileData))
+            {
+                Sprite sprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+
+                return sprite;
+            }
+            else
+            {
+                Debug.LogError($"Failed to load image data from: {filePath}");
+                return null;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"An error occurred while loading the file: {e.Message}");
+            return null;
+        }
+    }
+
 }
 
 [System.Serializable]

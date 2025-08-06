@@ -42,6 +42,8 @@ public class DataLoader : MonoBehaviour
     public const string LOCAL_SIMPLE_DATABASE_FILENAME = "savedSimpleQuestions.json";
     public const string LOCAL_SPECIALIZED_DATABASE_FILENAME = "savedSpecializedQuestions.json";
 
+    public const string LOCAL_MEDIA_FOLDER_NAME = "MediaCache";
+
     public List<QuestionData> examQuestions;
     public List<QuestionData> databaseQuestions = new();
     public List<QuestionData> answeredQuestions = new();
@@ -138,12 +140,12 @@ public class DataLoader : MonoBehaviour
                 foreach (JSONNode specializedQuestion in node["data"])
                     databaseQuestions.Add(GetQuestionData(specializedQuestion, true));
 
-                foreach (JSONNode specializedQuestion in node["data"])
-                {
-                    yield return StartCoroutine(LoadPictureOrVideoThumbnail(GetQuestionData(specializedQuestion, true)));
-                }
+            foreach (JSONNode specializedQuestion in node["data"])
+            {
+                yield return StartCoroutine(LoadPictureOrVideoThumbnail(GetQuestionData(specializedQuestion, true)));
+            }
 
-                SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SPECIALIZED_DATABASE_FILENAME);
+            SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SPECIALIZED_DATABASE_FILENAME);
             }
 
             yield return StartCoroutine(UnityAsyncExtentions.WaitForTask(StartMediaDownload(databaseQuestions)));
@@ -301,6 +303,9 @@ public class DataLoader : MonoBehaviour
                 examQuestions.Add(GetQuestionData(specializedQuestion, true));
             }
 
+            foreach (QuestionData questionData in examQuestions)
+                yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
+
             Debug.Log(examQuestions.Count);
         }
 
@@ -372,47 +377,81 @@ public class DataLoader : MonoBehaviour
     {
         string url = !questionData.IsFileVideo() ? questionData.mediaLink : questionData.frameImage;
 
-        Sprite sprite = MediaLibrary.GetSpriteIfExists(url);
+        string finalPath = Path.Combine(Application.persistentDataPath, LOCAL_MEDIA_FOLDER_NAME, Path.GetFileName(url));
 
-        if (sprite != null)
+        if (!File.Exists(finalPath))
         {
-            questionData.sprite = sprite;
+            Debug.Log("ABORTING");
+            questionData.loaded = true;
+            yield break;
+        }
+        if (SaveSystem.LoadSpriteFromFile(finalPath) != null)
+        {
+            questionData.sprite = SaveSystem.LoadSpriteFromFile(finalPath);
+            Debug.Log(questionData.sprite);
+            questionData.loaded = true;
             yield break;
         }
 
         if (changeLoadingVisibility)
             loading.SetActive(true);
 
-        if (url == null || !url.Contains(PICTURE_FILE_FORMAT))
+        string mediaCachePath = Path.Combine(Application.persistentDataPath, LOCAL_MEDIA_FOLDER_NAME);
+        string fileName = Path.GetFileName(Path.GetFileName(url));
+        string localFilePath = Path.Combine(mediaCachePath, fileName);
+
+        if (File.Exists(localFilePath))
         {
-            questionData.loaded = true;
-            yield break;
-        }
+            Debug.Log($"Loading image from local file: {localFilePath}");
+            try
+            {
+                
+                byte[] fileData = File.ReadAllBytes(localFilePath);
+                Texture2D texture = new Texture2D(2, 2);
 
-        UnityWebRequest pictureRequest = UnityWebRequestTexture.GetTexture(url);
-
-        yield return pictureRequest.SendWebRequest();
-
-        if (pictureRequest.result == UnityWebRequest.Result.ConnectionError ||
-            pictureRequest.result == UnityWebRequest.Result.ProtocolError)
-        {
-            Debug.Log("Loading error: " + pictureRequest.error + " URL: " + url);
+                if (texture.LoadImage(fileData))
+                {
+                    questionData.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                    MediaLibrary.AddSprite(url, questionData.sprite);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error loading image from local file {localFilePath}: {e.Message}");
+            }
         }
         else
         {
-            Texture2D texture = DownloadHandlerTexture.GetContent(pictureRequest);
+            Debug.Log($"File not found locally. Downloading from: {url}");
+            using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(url))
+            {
+                yield return request.SendWebRequest();
 
-            questionData.sprite = Sprite.Create(
-                texture,
-                new Rect(0, 0, texture.width, texture.height),
-                new Vector2(0.5f, 0.5f)
-            );
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    Texture2D texture = DownloadHandlerTexture.GetContent(request);
 
-            MediaLibrary.AddSprite(url, questionData.sprite);
+                    questionData.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                    MediaLibrary.AddSprite(url, questionData.sprite);
+                    try
+                    {
+                        Directory.CreateDirectory(mediaCachePath);
+                        File.WriteAllBytes(localFilePath, texture.EncodeToPNG());
+                        Debug.Log($"Successfully cached file: {fileName}");
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Failed to cache file {fileName}: {e.Message}");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"Failed to download image. Error: {request.error}, URL: {url}");
+                }
+            }
         }
 
         questionData.loaded = true;
-
         if (changeLoadingVisibility)
             loading.SetActive(false);
     }
