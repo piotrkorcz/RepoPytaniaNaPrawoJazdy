@@ -180,6 +180,19 @@ public class SaveSystem : MonoBehaviour
         }
     }
 
+    public static void DeleteLocallySavedData()
+    {
+        string mediaFolder = Path.Combine(Application.persistentDataPath, DataLoader.LOCAL_MEDIA_FOLDER_NAME);
+
+        Directory.Delete(mediaFolder, true);
+
+        string filePath = Path.Combine(Application.persistentDataPath, DataLoader.LOCAL_SIMPLE_DATABASE_FILENAME);
+        File.Delete(filePath);
+
+        filePath = Path.Combine(Application.persistentDataPath,DataLoader.LOCAL_SPECIALIZED_DATABASE_FILENAME) ;
+        File.Delete(filePath);
+    }
+
 }
 
 [System.Serializable]

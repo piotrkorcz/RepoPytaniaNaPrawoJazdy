@@ -56,6 +56,7 @@ public class DataLoader : MonoBehaviour
 
     [SerializeField] private Button accessExam;
     [SerializeField] private Button accessDatabase;
+    [SerializeField] private Button settingsDeleteButton;
     //[SerializeField] private Button settingsButton;
 
     private int currentDataSet;
@@ -322,6 +323,7 @@ public class DataLoader : MonoBehaviour
         accessDatabase.interactable = should;
         accessExam.interactable = should;
         //settingsButton.interactable = should;
+        settingsDeleteButton.interactable= should;
         loadingInformation.gameObject.SetActive(!should);
     }
     private QuestionData GetQuestionData(JSONNode node, bool isSpecialized)

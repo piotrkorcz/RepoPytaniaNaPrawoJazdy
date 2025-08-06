@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -223,9 +224,27 @@ public class QuestionUIController : MonoBehaviour
 
         if (currentQuestionData.IsFileVideo())
         {
-            videoPlayer.url = currentQuestionData.mediaLink;
-            startMediaButton.interactable = true;
+            string videoUrl = currentQuestionData.mediaLink;
+            string mediaCachePath = Path.Combine(Application.persistentDataPath, DataLoader.LOCAL_MEDIA_FOLDER_NAME);
+            string fileName = Path.GetFileName(new System.Uri(videoUrl).LocalPath);
+            string localFilePath = Path.Combine(mediaCachePath, fileName);
 
+            if (File.Exists(localFilePath))
+            {
+                Debug.Log($"<color=cyan>CACHE HIT:</color> Found local video '{fileName}'. Setting player URL to local path.");
+                videoPlayer.source = VideoSource.Url;
+                videoPlayer.url = "file://" + localFilePath; // Pamiêtaj o prefiksie "file://"
+            }
+            else
+            {
+                Debug.LogWarning($"<color=orange>CACHE MISS:</color> Video '{fileName}' not found locally. Using network URL.");
+                videoPlayer.source = VideoSource.Url;
+                videoPlayer.url = videoUrl;
+            }
+
+            // ### KONIEC ZMIANY ###
+
+            startMediaButton.interactable = true;
             RenderMediaUIPanel(MediaUIPanelType.BeforeMedia);
         }
         else

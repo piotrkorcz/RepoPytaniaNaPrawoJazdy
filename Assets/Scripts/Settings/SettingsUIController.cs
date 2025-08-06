@@ -8,6 +8,7 @@ public class SettingsUIController : MonoBehaviour
     [SerializeField] private Slider soundSlider;
     [SerializeField] private Button downloadButton;
     [SerializeField] private GameObject disclaimerText;
+    [SerializeField] private Button deleteButton;
 
     private void Start()
     {
@@ -17,6 +18,7 @@ public class SettingsUIController : MonoBehaviour
         bool should = ConsistentManager.Instance.ShouldSpawnFetchPopup();
         downloadButton.interactable = should;
         disclaimerText.SetActive(!should);
+        deleteButton.interactable = !should;
     }
 
     public void OnSoundToggle()
@@ -40,6 +42,17 @@ public class SettingsUIController : MonoBehaviour
         DataLoader.Instance.LoadNewDataSetInTheBackground();
         disclaimerText.SetActive(true);
         downloadButton.interactable = false;
+    }
+
+    public void HandleDeleteButton()
+    {
+        SaveSystem.DeleteLocallySavedData();
+
+        downloadButton.interactable = true;
+        disclaimerText.SetActive(false);
+        deleteButton.interactable = false;
+
+
     }
 
 }
