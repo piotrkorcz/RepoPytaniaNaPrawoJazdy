@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -25,7 +26,7 @@ public class DataLoader : MonoBehaviour
     public const string PICTURE_FILE_FORMAT = ".jpg";
     public const string VIDEO_FILE_FORMAT = ".mp4";
 
-    private const int QUESTIONS_PER_DATA_SET = 9999999;
+    private const int QUESTIONS_PER_DATA_SET = 9999;
 
     private const string API_URL = "https://admin.aplikacjaszkolajazdy.pl/api/";
 
@@ -91,7 +92,7 @@ public class DataLoader : MonoBehaviour
             isLoading = true;
 
             string url = API_URL + GET_ALL_SIMPLE + TOKEN + START + currentDataSet * QUESTIONS_PER_DATA_SET + LIMIT + QUESTIONS_PER_DATA_SET;
-
+        Debug.Log(url);
             currentDataSet++;
 
             UnityWebRequest request = UnityWebRequest.Get(url);
@@ -110,12 +111,18 @@ public class DataLoader : MonoBehaviour
             {
                 JSONNode node = JSON.Parse(request.downloadHandler.text);
 
+            int counter = 0;
                 foreach (JSONNode simpleQuestion in node["data"])
+                {
                     databaseQuestions.Add(GetQuestionData(simpleQuestion, false));
+                counter++;
+                }
+
 
                 foreach (QuestionData questionData in databaseQuestions)
                     yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
 
+            Debug.Log("Number of querries: " + counter);
                 SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SIMPLE_DATABASE_FILENAME);
             }
 
@@ -149,6 +156,7 @@ public class DataLoader : MonoBehaviour
             SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SPECIALIZED_DATABASE_FILENAME);
             }
 
+            //yield return new WaitForSeconds(0.5f);
             yield return StartCoroutine(UnityAsyncExtentions.WaitForTask(StartMediaDownload(databaseQuestions)));
 
 
@@ -461,7 +469,7 @@ public class DataLoader : MonoBehaviour
     public async Task StartMediaDownload(List<QuestionData> questionsToDownload)
     {
         Debug.Log($"Starting media download for {questionsToDownload.Count} questions...");
-
+        await Task.Delay(500);
         await DownloadAndSaveAllMedia(questionsToDownload);
 
         Debug.Log("Media download process finished.");
@@ -489,11 +497,30 @@ public class DataLoader : MonoBehaviour
             }
         }
 
-        List<Task> downloadTasks = allUrls.Select(url => DownloadAndSaveFileAsync(url, mediaSavePath)).ToList();
+        // 1. Define the number of concurrent downloads you want. 10 is a safe start.
+        int maxConcurrentDownloads = 10;
+        var semaphore = new SemaphoreSlim(maxConcurrentDownloads);
 
+        // 2. Map each URL to a throttled download task.
+        List<Task> downloadTasks = allUrls.Select(async url =>
+        {
+            // Wait until a "slot" is available.
+            await semaphore.WaitAsync();
+            try
+            {
+                // A slot is free, start the download.
+                await DownloadAndSaveFileAsync(url, mediaSavePath);
+            }
+            finally
+            {
+                // IMPORTANT: Release the slot so another download can start.
+                semaphore.Release();
+            }
+        }).ToList();
+
+        // 3. Wait for all the queued tasks to complete.
         await Task.WhenAll(downloadTasks);
     }
-
     private async Task DownloadAndSaveFileAsync(string url, string saveDirectory)
     {
         try
