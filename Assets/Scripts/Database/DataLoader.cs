@@ -60,6 +60,9 @@ public class DataLoader : MonoBehaviour
     [SerializeField] private Button settingsDeleteButton;
     //[SerializeField] private Button settingsButton;
 
+    [SerializeField]
+    private Slider loadingSlider;
+
     private int currentDataSet;
     private bool isLoading;
     public bool IsLoading { get { return isLoading; } }
@@ -497,6 +500,15 @@ public class DataLoader : MonoBehaviour
             }
         }
 
+        int totalFilesToDownload = allUrls.Count;
+        int filesCompleted = 0;
+
+        if (totalFilesToDownload > 0)
+        {
+            UnityMainThreadDispatcher.Instance().Enqueue(() => loadingSlider.value = 0.05f);
+        }
+
+
         // 1. Define the number of concurrent downloads you want. 10 is a safe start.
         int maxConcurrentDownloads = 10;
         var semaphore = new SemaphoreSlim(maxConcurrentDownloads);
@@ -509,7 +521,17 @@ public class DataLoader : MonoBehaviour
             try
             {
                 // A slot is free, start the download.
-                await DownloadAndSaveFileAsync(url, mediaSavePath);
+                await DownloadAndSaveFileAsync(url, mediaSavePath, () =>
+                {
+                    int currentCompleted = Interlocked.Increment(ref filesCompleted);
+                    UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                    {
+                        if (totalFilesToDownload > 0)
+                        {
+                            loadingSlider.value = (float)currentCompleted / totalFilesToDownload;
+                        }
+                    });
+                });
             }
             finally
             {
@@ -521,7 +543,7 @@ public class DataLoader : MonoBehaviour
         // 3. Wait for all the queued tasks to complete.
         await Task.WhenAll(downloadTasks);
     }
-    private async Task DownloadAndSaveFileAsync(string url, string saveDirectory)
+    private async Task DownloadAndSaveFileAsync(string url, string saveDirectory, Action onCompleted)
     {
         try
         {
@@ -531,6 +553,7 @@ public class DataLoader : MonoBehaviour
             if (File.Exists(savePath))
             {
                 Debug.Log($"File already exists, skipping: {fileName}");
+                onCompleted?.Invoke();
                 return;
             }
 
@@ -545,6 +568,7 @@ public class DataLoader : MonoBehaviour
                     await File.WriteAllBytesAsync(savePath, fileData);
 
                     Debug.Log($"Successfully downloaded and saved: {fileName} to {savePath}");
+                    onCompleted?.Invoke();
                 }
                 else
                 {

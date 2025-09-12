@@ -12,6 +12,8 @@ public class SettingsUIController : MonoBehaviour
 
     private void Start()
     {
+        Application.runInBackground = true;
+
         soundToggle.SetActive(SettingsManager.SoundToggle);
         soundSlider.value = SettingsManager.SoundSlider;
 
