@@ -17,12 +17,16 @@ public class SettingsUIController : MonoBehaviour
         soundToggle.SetActive(SettingsManager.SoundToggle);
         soundSlider.value = SettingsManager.SoundSlider;
 
+
+    }
+
+    private void OnEnable()
+    {
         bool should = ConsistentManager.Instance.ShouldSpawnFetchPopup();
         downloadButton.interactable = should;
         disclaimerText.SetActive(!should);
         deleteButton.interactable = !should;
     }
-
     public void OnSoundToggle()
     {
         soundToggle.SetActive(!SettingsManager.SoundToggle);
@@ -41,6 +45,8 @@ public class SettingsUIController : MonoBehaviour
 
     public void HandleDownloadButton()
     {
+        if (DataLoader.IsBackgroundDownloading)
+            return;
         DataLoader.Instance.LoadNewDataSetInTheBackground();
         disclaimerText.SetActive(true);
         downloadButton.interactable = false;

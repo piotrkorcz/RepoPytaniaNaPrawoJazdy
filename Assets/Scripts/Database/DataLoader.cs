@@ -12,6 +12,7 @@ using UnityEngine.UI;
 
 public class DataLoader : MonoBehaviour
 {
+    public static bool IsBackgroundDownloading { get; private set; } = false;
     private static DataLoader instance;
     public static DataLoader Instance { get { return instance; } }
 
@@ -90,12 +91,15 @@ public class DataLoader : MonoBehaviour
 
     private IEnumerator FetchAllDatabaseData()
     {
-            EnableAccessess(false);
+        IsBackgroundDownloading = true;
+        EnableAccessess(false);
             Debug.Log("Loading from internet data");
             isLoading = true;
 
+        try
+        {
             string url = API_URL + GET_ALL_SIMPLE + TOKEN + START + currentDataSet * QUESTIONS_PER_DATA_SET + LIMIT + QUESTIONS_PER_DATA_SET;
-        Debug.Log(url);
+            Debug.Log(url);
             currentDataSet++;
 
             UnityWebRequest request = UnityWebRequest.Get(url);
@@ -114,18 +118,18 @@ public class DataLoader : MonoBehaviour
             {
                 JSONNode node = JSON.Parse(request.downloadHandler.text);
 
-            int counter = 0;
+                int counter = 0;
                 foreach (JSONNode simpleQuestion in node["data"])
                 {
                     databaseQuestions.Add(GetQuestionData(simpleQuestion, false));
-                counter++;
+                    counter++;
                 }
 
 
                 foreach (QuestionData questionData in databaseQuestions)
                     yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
 
-            Debug.Log("Number of querries: " + counter);
+                Debug.Log("Number of querries: " + counter);
                 SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SIMPLE_DATABASE_FILENAME);
             }
 
@@ -151,83 +155,99 @@ public class DataLoader : MonoBehaviour
                 foreach (JSONNode specializedQuestion in node["data"])
                     databaseQuestions.Add(GetQuestionData(specializedQuestion, true));
 
-            foreach (JSONNode specializedQuestion in node["data"])
-            {
-                yield return StartCoroutine(LoadPictureOrVideoThumbnail(GetQuestionData(specializedQuestion, true)));
-            }
+                foreach (JSONNode specializedQuestion in node["data"])
+                {
+                    yield return StartCoroutine(LoadPictureOrVideoThumbnail(GetQuestionData(specializedQuestion, true)));
+                }
 
-            SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SPECIALIZED_DATABASE_FILENAME);
+                SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SPECIALIZED_DATABASE_FILENAME);
             }
 
             //yield return new WaitForSeconds(0.5f);
             yield return StartCoroutine(UnityAsyncExtentions.WaitForTask(StartMediaDownload(databaseQuestions)));
+        }
+
+        finally
+        {
+            isLoading = false;
+            loading.SetActive(false);
+            EnableAccessess(true);
+            OnLoad?.Invoke();
+            IsBackgroundDownloading = true;
+        }
 
 
-
-        isLoading = false;
-        loading.SetActive(false);
-        EnableAccessess(true);
-        OnLoad?.Invoke();
     }
     private IEnumerator LoadData(bool shouldActivateLoadingCurtine = true)
     {
         string finalPath = Path.Combine(Application.persistentDataPath, LOCAL_SIMPLE_DATABASE_FILENAME);
         Debug.Log(finalPath);
 
-        if (!File.Exists(finalPath))
+        try
         {
-            Debug.Log("Loading from internet data");
-            isLoading = true;
-            if (shouldActivateLoadingCurtine)
-                loading.SetActive(true);
 
-            string url = API_URL + GET_ALL_SIMPLE + TOKEN + START + currentDataSet * QUESTIONS_PER_DATA_SET + LIMIT + QUESTIONS_PER_DATA_SET;
-
-            currentDataSet++;
-
-            UnityWebRequest request = UnityWebRequest.Get(url);
-
-            request.SetRequestHeader("Content-Type", "application/json");
-
-
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.ConnectionError ||
-                request.result == UnityWebRequest.Result.ProtocolError)
+            if (!File.Exists(finalPath) && !IsBackgroundDownloading)
             {
-                Debug.LogError("Loading error: " + request.error);
+                Debug.Log("Loading from internet data");
+                IsBackgroundDownloading = true;
+                isLoading = true;
+                if (shouldActivateLoadingCurtine)
+                    loading.SetActive(true);
+
+                string url = API_URL + GET_ALL_SIMPLE + TOKEN + START + currentDataSet * QUESTIONS_PER_DATA_SET + LIMIT + QUESTIONS_PER_DATA_SET;
+
+                currentDataSet++;
+
+                UnityWebRequest request = UnityWebRequest.Get(url);
+
+                request.SetRequestHeader("Content-Type", "application/json");
+
+
+                yield return request.SendWebRequest();
+
+                if (request.result == UnityWebRequest.Result.ConnectionError ||
+                    request.result == UnityWebRequest.Result.ProtocolError)
+                {
+                    Debug.LogError("Loading error: " + request.error);
+                }
+                else
+                {
+                    JSONNode node = JSON.Parse(request.downloadHandler.text);
+
+                    foreach (JSONNode simpleQuestion in node["data"])
+                        databaseQuestions.Add(GetQuestionData(simpleQuestion, false));
+
+                    foreach (QuestionData questionData in databaseQuestions)
+                    {
+                        yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
+                    }
+
+                    SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SIMPLE_DATABASE_FILENAME);
+                }
+
+
             }
             else
             {
-                JSONNode node = JSON.Parse(request.downloadHandler.text);
-
-                foreach (JSONNode simpleQuestion in node["data"])
+                Debug.Log("Loading from local data");
+                JSONNode localData = SaveSystem.LoadJsonFromFile(LOCAL_SIMPLE_DATABASE_FILENAME);
+                foreach (JSONNode simpleQuestion in localData["data"])
                     databaseQuestions.Add(GetQuestionData(simpleQuestion, false));
-
                 foreach (QuestionData questionData in databaseQuestions)
-                {
                     yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
-                }
- 
-                SaveSystem.SaveJsonToFile(node.ToString(), LOCAL_SIMPLE_DATABASE_FILENAME);
             }
-
-
         }
-        else
+        finally
         {
-            Debug.Log("Loading from local data");
-            JSONNode localData = SaveSystem.LoadJsonFromFile(LOCAL_SIMPLE_DATABASE_FILENAME);
-            foreach (JSONNode simpleQuestion in localData["data"])
-                databaseQuestions.Add(GetQuestionData(simpleQuestion, false));
-            foreach (QuestionData questionData in databaseQuestions)
-                yield return StartCoroutine(LoadPictureOrVideoThumbnail(questionData));
+            IsBackgroundDownloading = false;
+            isLoading = false;
+            loading.SetActive(false);
+            EnableAccessess(true);
+            OnLoad?.Invoke();
+
         }
 
-        isLoading = false;
-        loading.SetActive(false);
-        EnableAccessess(true);
-        OnLoad?.Invoke();
+
 
     }
 
@@ -331,8 +351,9 @@ public class DataLoader : MonoBehaviour
 
     private void EnableAccessess(bool should = true)
     {
+        Debug.Log("ACCESSES ARE BEING ENABLED");
         accessDatabase.interactable = should;
-        accessExam.interactable = should;
+        //accessExam.interactable = should;
         //settingsButton.interactable = should;
         settingsDeleteButton.interactable= should;
         loadingInformation.gameObject.SetActive(!should);

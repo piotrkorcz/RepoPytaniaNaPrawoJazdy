@@ -49,6 +49,8 @@ public class ConsistentManager : MonoBehaviour
         string finalPath1 = Path.Combine(Application.persistentDataPath, DataLoader.LOCAL_SIMPLE_DATABASE_FILENAME);
         string finalPath2 = Path.Combine(Application.persistentDataPath, DataLoader.LOCAL_SPECIALIZED_DATABASE_FILENAME);
 
+        if (DataLoader.IsBackgroundDownloading)
+            return false;
         if (File.Exists(finalPath1) && File.Exists(finalPath2))
             return false;
         return true;
