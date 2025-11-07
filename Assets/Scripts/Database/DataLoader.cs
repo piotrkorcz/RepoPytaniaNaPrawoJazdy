@@ -29,7 +29,7 @@ public class DataLoader : MonoBehaviour
 
     private const int QUESTIONS_PER_DATA_SET = 9999;
 
-    private const string API_URL = "https://admin.aplikacjaszkolajazdy.pl/api/";
+    private const string API_URL = "https://admin.aplikacjaszkolajazdy.pl/api/"; 
 
     private const string GET_ALL_SIMPLE = "getAllSimple.php";
     private const string GET_ALL_SPECIALIZED = "getAllSpecialized.php";
